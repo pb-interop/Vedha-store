@@ -1,0 +1,2 @@
+:root{--forest:#18382b;--cream:#f4eedf;--paper:#fbf8ef;--ink:#2a2119;--gold:#d49a2b;--red:#9a3d2c;--line:rgba(42,33,25,.15)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--font-sans),sans-serif}button,input,textarea{font:inherit}button{cursor:pointer}h1,h2,h3,p{margin-top:0}h1,h2,h3{font-family:var(--font-display),serif;color:var(--forest)}
