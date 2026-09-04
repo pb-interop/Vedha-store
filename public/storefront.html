@@ -1489,6 +1489,31 @@ document.getElementById('sendEmail').addEventListener('click',()=>{
   showToast('Opening your email app');
 });
 
+/* ---------- LIVE CHECKOUT ---------- */
+let CHECKOUT_CONFIG={upiEnabled:false,upiId:''};
+renderCheckout=function(){
+  const el=document.getElementById('checkout-content');
+  if(!cartCount()){el.innerHTML='<div class="empty-state"><h3>Your cart is empty</h3><p>Add a product before checking out.</p><button class="btn btn-primary" data-back-shop>Shop products</button></div>';el.querySelector('[data-back-shop]').onclick=()=>goTo('products');return;}
+  const total=cartTotal(),upi=CHECKOUT_CONFIG.upiEnabled;
+  el.innerHTML=`<div class="checkout-steps"><span class="checkout-step active">1 Shipping</span><span class="checkout-step">2 Payment</span><span class="checkout-step">3 Confirmation</span></div><div class="checkout-shell"><form class="checkout-form" id="checkoutForm"><h3>Shipping address</h3><div class="form-grid" style="margin-top:20px"><div class="field"><label>Full name</label><input name="name" required maxlength="120" autocomplete="name"></div><div class="field"><label>Mobile number</label><input name="phone" required inputmode="tel" pattern="[0-9 +()-]{10,}" autocomplete="tel"></div><div class="field full"><label>Address</label><input name="address" required maxlength="200" autocomplete="street-address"></div><div class="field"><label>City</label><input name="city" required maxlength="80" autocomplete="address-level2"></div><div class="field"><label>State</label><input name="state" value="Tamil Nadu" required maxlength="80" autocomplete="address-level1"></div><div class="field"><label>PIN code</label><input name="pin" required inputmode="numeric" pattern="[0-9]{6}" autocomplete="postal-code"></div><div class="field"><label>Email (optional)</label><input name="email" type="email" autocomplete="email"></div></div><h3 style="margin-top:28px">Payment</h3><div class="payment-options">${upi?`<label class="payment-option"><input type="radio" name="payment" value="upi"> <span><strong>UPI</strong><br><small>Scan and enter the payment reference</small></span></label>`:''}<label class="payment-option selected"><input type="radio" name="payment" value="cod" checked> <span><strong>Cash on delivery</strong><br><small>Pay when your order arrives</small></span></label></div>${upi?`<div class="upi-panel" id="upiPanel"><strong>Scan to pay &#8377;${total}</strong><div class="qr-wrap" id="upiQr"></div><p style="font-size:12px">After payment, enter the UPI reference below.</p><div class="field"><label>UPI transaction reference</label><input name="upiRef" placeholder="Transaction reference"></div></div>`:''}<p class="demo-warning" id="checkoutError" hidden></p><button class="btn btn-primary" id="placeOrder" style="width:100%;justify-content:center;margin-top:22px" type="submit">Place order</button></form><div class="summary-card"><h3>Order summary</h3><div class="summary-line"><span>${cartCount()} items</span><span>&#8377;${total}</span></div><div class="summary-total"><span>Total</span><span>&#8377;${total}</span></div></div></div>`;
+  if(upi){const paymentUrl=`upi://pay?pa=${encodeURIComponent(CHECKOUT_CONFIG.upiId)}&pn=${encodeURIComponent('Vedha Homemade Food Products')}&am=${total}&cu=INR&tn=${encodeURIComponent('Vedha website order')}`;setTimeout(()=>{const q=document.getElementById('upiQr');if(q&&window.QRCode){q.innerHTML='';new QRCode(q,{text:paymentUrl,width:186,height:186,colorDark:'#132821',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}},100);}
+  el.querySelectorAll('[name="payment"]').forEach(r=>r.onchange=()=>{el.querySelectorAll('.payment-option').forEach(x=>x.classList.toggle('selected',x.contains(r)&&r.checked));document.getElementById('upiPanel')?.classList.toggle('show',r.value==='upi'&&r.checked);});
+  document.getElementById('checkoutForm').onsubmit=async e=>{
+    e.preventDefault();const form=e.target,data=new FormData(form),method=data.get('payment'),error=document.getElementById('checkoutError'),button=document.getElementById('placeOrder');
+    if(method==='upi'&&!String(data.get('upiRef')||'').trim()){showToast('Enter the UPI reference after payment');return;}
+    error.hidden=true;button.disabled=true;button.textContent='Placing order…';
+    const checkout={name:data.get('name'),phone:data.get('phone'),email:data.get('email'),payment_method:method,upi_reference:data.get('upiRef'),address:{line1:data.get('address'),city:data.get('city'),state:data.get('state'),postal_code:data.get('pin')},items:Object.entries(state.cart).map(([product_id,quantity])=>({product_id:Number(product_id),quantity}))};
+    try{const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(checkout)});const result=await response.json();if(!response.ok)throw new Error(result.error||'The order could not be placed.');state.cart={};updateBadges();el.innerHTML=`<div class="order-success"><div class="success-mark">&#10003;</div><h2>Order received</h2><p>Your order number is <strong>${safeText(result.order_number)}</strong>.</p><p>Keep this number to track your order using your phone number.</p><button class="btn btn-primary" data-home>Return home</button></div>`;el.querySelector('[data-home]').onclick=()=>goTo('home');}
+    catch(problem){error.textContent=problem.message;error.hidden=false;button.disabled=false;button.textContent='Place order';}
+  };
+};
+
+async function loadCheckoutConfig(){
+  try{const response=await fetch('/api/checkout-config',{cache:'no-store'});if(response.ok)CHECKOUT_CONFIG=await response.json();}
+  catch(error){console.error(error);}
+  if(state.page==='checkout')renderCheckout();
+}
+
 /* ---------- INIT ---------- */
 function safeText(value){
   return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -1518,6 +1543,7 @@ async function loadLiveCatalogue(){
 renderHomeCategories(); renderFilters(); renderMegaMenu(); renderDrawerCategories();
 renderProducts(); renderReviews(); updateBadges(); goTo('home');
 loadLiveCatalogue();
+loadCheckoutConfig();
 </script>
 </body>
 </html>
