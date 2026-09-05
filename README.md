@@ -26,8 +26,9 @@ The protected administrator route is available at `/admin`. Until Supabase is co
 5. Run `supabase/activate-admin.sql` to approve the configured administrator without copying a user UUID.
 6. Run `supabase/storage-setup.sql` to create the product-image bucket and its security policies.
 7. Run `supabase/orders-setup.sql` to activate transactional guest checkout and inventory reservation.
-8. Copy `.env.example` to `.env.local` and enter the project URL, publishable key and approved administrator email.
-9. Restart `npm.cmd run dev`.
+8. Run `supabase/order-admin-setup.sql` to activate administrator order and inventory-status updates.
+9. Copy `.env.example` to `.env.local` and enter the project URL, publishable key and approved administrator email.
+10. Restart `npm.cmd run dev`.
 
 Row Level Security permits public reading of active catalogue and offer records only. Customer, address, order, payment, invoice, inventory-history and audit records require an approved administrator session.
 

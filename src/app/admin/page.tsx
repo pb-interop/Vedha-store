@@ -23,7 +23,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
   const [products, orders, customers, variants] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase.from("customers").select("id", { count: "exact", head: true }),
     supabase.from("product_variants").select("stock_quantity,reserved_quantity,low_stock_threshold"),
   ]);
@@ -35,9 +35,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const actions = [
     { name: "Products", description: "Add items, prices and details", href: "/admin/products" },
     { name: "Inventory", description: "Update stock and review low-stock items", href: "/admin/inventory" },
+    { name: "Orders", description: "View customers, addresses, payment and fulfilment", href: "/admin/orders" },
   ];
   const upcoming = [
-    ["Orders", "View customer, phone, address and payment status"],
     ["Offers", "Create sale and festival banners"],
     ["Customers", "Search customers by name or phone"],
     ["Invoices", "Print, download and resend invoices"],
