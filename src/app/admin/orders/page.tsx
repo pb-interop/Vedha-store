@@ -2,6 +2,7 @@ import { AdminHeader } from "../admin-nav";
 import { requireAdmin } from "../lib";
 import { updateOrder } from "./actions";
 import styles from "../admin.module.css";
+import Link from "next/link";
 
 type OrderItem = { id: number; product_name: string; variant_label: string; sku: string; quantity: number; unit_price_paise: number; line_total_paise: number };
 type Payment = { method: string; status: string; upi_reference: string | null };
@@ -15,9 +16,21 @@ type Order = {
 const orderStatuses = ["new", "confirmed", "preparing", "packed", "shipped", "delivered", "cancelled"];
 const paymentStatuses = ["verification_required", "pending", "paid", "failed", "refunded", "due_on_delivery"];
 
-export default async function OrdersPage() {
+type OrdersPageProps = { searchParams: Promise<{ name?: string; order?: string; date?: string }> };
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const { supabase } = await requireAdmin();
-  const { data, error } = await supabase.from("orders").select("id,order_number,status,payment_method,payment_status,total_paise,shipping_name,shipping_phone,shipping_address,customer_note,created_at,order_items(id,product_name,variant_label,sku,quantity,unit_price_paise,line_total_paise),payments(method,status,upi_reference)").order("created_at", { ascending: false });
+  const filters = await searchParams;
+  const customerName = filters.name?.trim() ?? "";
+  const orderNumber = filters.order?.trim() ?? "";
+  const orderDate = filters.date?.trim() ?? "";
+  let query = supabase.from("orders").select("id,order_number,status,payment_method,payment_status,total_paise,shipping_name,shipping_phone,shipping_address,customer_note,created_at,order_items(id,product_name,variant_label,sku,quantity,unit_price_paise,line_total_paise),payments(method,status,upi_reference)");
+  if (customerName) query = query.ilike("shipping_name", `%${customerName}%`);
+  if (orderNumber) query = query.ilike("order_number", `%${orderNumber}%`);
+  if (orderDate && /^\d{4}-\d{2}-\d{2}$/.test(orderDate)) {
+    query = query.gte("created_at", `${orderDate}T00:00:00+05:30`).lt("created_at", `${nextDate(orderDate)}T00:00:00+05:30`);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const orders = (data ?? []) as Order[];
   const active = orders.filter((order) => !["delivered", "cancelled"].includes(order.status)).length;
@@ -27,7 +40,14 @@ export default async function OrdersPage() {
     <AdminHeader/>
     <section className={styles.heading}><span>Order management</span><h1>Orders</h1><p>Review customer details, confirm payment, and move each order through fulfilment.</p></section>
     <div className={styles.orderSummary}><div><span>Total orders</span><b>{orders.length}</b></div><div><span>Active orders</span><b>{active}</b></div><div><span>UPI checks</span><b>{paymentChecks}</b></div></div>
-    {orders.length === 0 ? <div className={styles.emptyAdmin}><h2>No orders yet</h2><p>A customer order will appear here immediately after checkout.</p></div> : <div className={styles.orderList}>{orders.map((order) => {
+    <form className={styles.orderFilters} method="get">
+      <label>Customer name<input name="name" type="search" defaultValue={customerName} placeholder="e.g. Lakshmi"/></label>
+      <label>Order number<input name="order" type="search" defaultValue={orderNumber} placeholder="e.g. VH-2026-00001"/></label>
+      <label>Order date<input name="date" type="date" defaultValue={orderDate}/></label>
+      <button className={styles.filterButton} type="submit">Filter orders</button>
+      {(customerName || orderNumber || orderDate) && <Link className={styles.clearFilters} href="/admin/orders">Clear</Link>}
+    </form>
+    {orders.length === 0 ? <div className={styles.emptyAdmin}><h2>{customerName || orderNumber || orderDate ? "No matching orders" : "No orders yet"}</h2><p>{customerName || orderNumber || orderDate ? "Try changing or clearing the filters." : "A customer order will appear here immediately after checkout."}</p></div> : <div className={styles.orderList}>{orders.map((order) => {
       const address = order.shipping_address ?? {};
       const terminal = ["delivered", "cancelled"].includes(order.status);
       const payment = order.payments[0];
@@ -52,3 +72,4 @@ export default async function OrdersPage() {
 
 function label(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function money(paise: number) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100); }
+function nextDate(value: string) { const date = new Date(`${value}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + 1); return date.toISOString().slice(0, 10); }
