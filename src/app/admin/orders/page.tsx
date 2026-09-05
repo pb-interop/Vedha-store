@@ -63,15 +63,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           <span data-label="Quantity">{totalQuantity}</span>
           <span data-label="Price">{order.order_items.map((item) => money(item.unit_price_paise)).join(" / ")}</span>
           <b data-label="Total">{money(order.total_paise)}</b>
-          <span data-label="Shipping">{[address.city, address.state].filter(Boolean).join(", ") || "—"}</span>
-          <span data-label="Payment">{order.payment_method.toUpperCase()}<small>{label(order.payment_status)}</small></span>
+          <span data-label="Shipping" className={styles.shippingAddress}>{formatAddress(address)}</span>
+          <span data-label="Payment">{order.payment_method.toUpperCase()}<small>{label(order.payment_status)}{payment?.upi_reference && <><br/>Ref: {payment.upi_reference}</>}</small></span>
           <span data-label="Status" className={styles.orderStatus}>{label(order.status)}</span>
         </summary>
-        <div className={styles.orderBody}>
-          <section><h3>Items</h3><div className={styles.orderItems}>{order.order_items.map((item) => <div key={item.id}><span><strong>{item.product_name}</strong><small>{item.variant_label} · {item.sku}</small></span><span>{item.quantity} × {money(item.unit_price_paise)}</span><b>{money(item.line_total_paise)}</b></div>)}</div></section>
-          <section><h3>Shipping</h3><address><strong>{order.shipping_name}</strong><br/>{address.line1}{address.line2 && <><br/>{address.line2}</>}<br/>{address.city}, {address.state} {address.postal_code}{address.landmark && <><br/>Landmark: {address.landmark}</>}<br/><a href={`tel:${order.shipping_phone}`}>{order.shipping_phone}</a></address>{order.customer_note && <p>Note: {order.customer_note}</p>}</section>
-          <section><h3>Payment</h3><p><b>{order.payment_method.toUpperCase()}</b><br/>{label(order.payment_status)}{payment?.upi_reference && <><br/>Reference: {payment.upi_reference}</>}</p></section>
-        </div>
         <form action={updateOrder} className={styles.orderControls}>
           <input type="hidden" name="order_id" value={order.id}/>
           <label>Order status<select name="status" defaultValue={order.status} disabled={terminal}>{orderStatuses.map((status) => <option value={status} key={status}>{label(status)}</option>)}</select></label>
@@ -87,3 +82,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 function label(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function money(paise: number) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100); }
 function nextDate(value: string) { const date = new Date(`${value}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + 1); return date.toISOString().slice(0, 10); }
+function formatAddress(address: Address) {
+  return [address.line1, address.line2, address.landmark && `Landmark: ${address.landmark}`, [address.city, address.state].filter(Boolean).join(", "), address.postal_code].filter(Boolean).join(" · ") || "—";
+}
