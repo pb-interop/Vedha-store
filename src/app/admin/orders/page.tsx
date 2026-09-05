@@ -47,12 +47,26 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       <button className={styles.filterButton} type="submit">Filter orders</button>
       {(customerName || orderNumber || orderDate) && <Link className={styles.clearFilters} href="/admin/orders">Clear</Link>}
     </form>
-    {orders.length === 0 ? <div className={styles.emptyAdmin}><h2>{customerName || orderNumber || orderDate ? "No matching orders" : "No orders yet"}</h2><p>{customerName || orderNumber || orderDate ? "Try changing or clearing the filters." : "A customer order will appear here immediately after checkout."}</p></div> : <div className={styles.orderList}>{orders.map((order) => {
+    {orders.length === 0 ? <div className={styles.emptyAdmin}><h2>{customerName || orderNumber || orderDate ? "No matching orders" : "No orders yet"}</h2><p>{customerName || orderNumber || orderDate ? "Try changing or clearing the filters." : "A customer order will appear here immediately after checkout."}</p></div> : <div className={styles.orderTableScroll}><div className={styles.orderList}>
+      <div className={styles.orderTableHead}><span>Date &amp; time</span><span>Order No.</span><span>Order Name</span><span>Items</span><span>Quantity</span><span>Price</span><span>Total</span><span>Shipping</span><span>Payment</span><span>Status</span></div>
+      {orders.map((order) => {
       const address = order.shipping_address ?? {};
       const terminal = ["delivered", "cancelled"].includes(order.status);
       const payment = order.payments[0];
+      const totalQuantity = order.order_items.reduce((sum, item) => sum + item.quantity, 0);
       return <details className={styles.orderEntry} key={order.id} open={order.status === "new"}>
-        <summary><div><strong>{order.order_number}</strong><span>{order.shipping_name} · {order.shipping_phone}</span></div><div><span className={styles.orderStatus}>{label(order.status)}</span><b>{money(order.total_paise)}</b><small>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at))}</small></div></summary>
+        <summary className={styles.orderTableRow}>
+          <span data-label="Date & time">{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(order.created_at))}</span>
+          <strong data-label="Order No.">{order.order_number}</strong>
+          <span data-label="Order Name"><b>{order.shipping_name}</b><small>{order.shipping_phone}</small></span>
+          <span data-label="Items" className={styles.orderProductNames}>{order.order_items.map((item) => item.product_name).join(", ")}</span>
+          <span data-label="Quantity">{totalQuantity}</span>
+          <span data-label="Price">{order.order_items.map((item) => money(item.unit_price_paise)).join(" / ")}</span>
+          <b data-label="Total">{money(order.total_paise)}</b>
+          <span data-label="Shipping">{[address.city, address.state].filter(Boolean).join(", ") || "—"}</span>
+          <span data-label="Payment">{order.payment_method.toUpperCase()}<small>{label(order.payment_status)}</small></span>
+          <span data-label="Status" className={styles.orderStatus}>{label(order.status)}</span>
+        </summary>
         <div className={styles.orderBody}>
           <section><h3>Items</h3><div className={styles.orderItems}>{order.order_items.map((item) => <div key={item.id}><span><strong>{item.product_name}</strong><small>{item.variant_label} · {item.sku}</small></span><span>{item.quantity} × {money(item.unit_price_paise)}</span><b>{money(item.line_total_paise)}</b></div>)}</div></section>
           <section><h3>Shipping</h3><address><strong>{order.shipping_name}</strong><br/>{address.line1}{address.line2 && <><br/>{address.line2}</>}<br/>{address.city}, {address.state} {address.postal_code}{address.landmark && <><br/>Landmark: {address.landmark}</>}<br/><a href={`tel:${order.shipping_phone}`}>{order.shipping_phone}</a></address>{order.customer_note && <p>Note: {order.customer_note}</p>}</section>
@@ -66,7 +80,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           {terminal && <small>This order is complete and cannot be reopened.</small>}
         </form>
       </details>;
-    })}</div>}
+    })}</div></div>}
   </div></main>;
 }
 
