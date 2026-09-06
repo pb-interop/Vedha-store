@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "../lib";
 
 const text = (data: FormData, name: string) => String(data.get(name) ?? "").trim();
@@ -30,8 +31,14 @@ export async function createOffer(data: FormData) {
   if (error) throw new Error(error.message);
   const { error: rowsError } = await supabase.from("offer_products").insert(saleRows.map((row) => ({ ...row, offer_id: offer.id })));
   if (rowsError) { await supabase.from("offers").delete().eq("id", offer.id); throw new Error(`${rowsError.message}. Run supabase/offers-setup.sql first.`); }
+  const image = data.get("banner_image");
+  if (image instanceof File && image.size > 0) {
+    try { await uploadBanner(supabase, offer.id, image); }
+    catch (problem) { await supabase.from("offers").delete().eq("id", offer.id); throw problem; }
+  }
   await supabase.from("audit_log").insert({ admin_user_id: user.id, action: "offer_created", entity_type: "offer", entity_id: String(offer.id), details: { title, products: saleRows.length, active } });
   refreshOffers();
+  redirect("/admin/offers?saved=1");
 }
 
 export async function setOfferActive(data: FormData) {
@@ -47,3 +54,15 @@ export async function setOfferActive(data: FormData) {
 
 function indiaDate(value: string) { return value ? new Date(`${value}:00+05:30`) : null; }
 function refreshOffers() { revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/admin/offers"); }
+
+async function uploadBanner(supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"], offerId: number, file: File) {
+  if (file.size > 5 * 1024 * 1024) throw new Error("The banner image must be 5 MB or smaller.");
+  const extensions: Record<string,string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const extension = extensions[file.type];
+  if (!extension) throw new Error("Upload a JPG, PNG, or WebP banner image.");
+  const path = `offers/${offerId}/${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
+  if (uploadError) throw new Error(`${uploadError.message}. Run supabase/storage-setup.sql if storage is not configured.`);
+  const { error } = await supabase.from("offers").update({ image_path: path }).eq("id", offerId);
+  if (error) { await supabase.storage.from("product-images").remove([path]); throw new Error(error.message); }
+}

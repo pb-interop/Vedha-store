@@ -30,13 +30,13 @@ type CatalogRow = {
     sort_order: number;
   }[];
 };
-type OfferRow = { id: number; title: string; message: string | null; button_label: string | null; button_url: string | null; offer_products: { variant_id: number; sale_price_paise: number }[] };
+type OfferRow = { id: number; title: string; message: string | null; image_path: string | null; button_label: string | null; button_url: string | null; offer_products: { variant_id: number; sale_price_paise: number }[] };
 
 export async function GET() {
   const supabase = await createClient();
   const [{ data, error }, { data: offers, error: offerError }] = await Promise.all([
     supabase.from("products").select("id,slug,name,short_description,description,ingredients,allergens,usage,storage_instructions,vegetarian,featured,categories(name,sort_order),product_variants(id,label,price_paise,stock_quantity,reserved_quantity,active),product_images(storage_path,alt_text,sort_order)").eq("active", true).order("name"),
-    supabase.from("offers").select("id,title,message,button_label,button_url,offer_products(variant_id,sale_price_paise)").eq("active", true).order("created_at", { ascending: false }).limit(1),
+    supabase.from("offers").select("id,title,message,image_path,button_label,button_url,offer_products(variant_id,sale_price_paise)").eq("active", true).order("created_at", { ascending: false }).limit(1),
   ]);
 
   if (error || offerError) {
@@ -80,7 +80,7 @@ export async function GET() {
     .filter(Boolean)
     .sort((a, b) => (a!.categoryOrder - b!.categoryOrder) || a!.name.localeCompare(b!.name));
 
-  const banner = activeOffer ? { title: activeOffer.title, message: activeOffer.message, buttonLabel: activeOffer.button_label, buttonUrl: activeOffer.button_url } : null;
+  const banner = activeOffer ? { title: activeOffer.title, message: activeOffer.message, imageUrl: activeOffer.image_path ? supabase.storage.from("product-images").getPublicUrl(activeOffer.image_path).data.publicUrl : null, buttonLabel: activeOffer.button_label, buttonUrl: activeOffer.button_url } : null;
   return NextResponse.json({ products, banner }, {
     headers: { "Cache-Control": "no-store" },
   });
