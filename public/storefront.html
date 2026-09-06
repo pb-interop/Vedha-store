@@ -1030,6 +1030,13 @@ function showToast(msg){
 
 /* ---------- NAVIGATION ---------- */
 function goTo(page){
+  if(state.page==='track'&&page!=='track'){
+    document.getElementById('trackOrderForm')?.reset();
+    const trackingResult=document.getElementById('trackingResult');
+    const trackingError=document.getElementById('trackingError');
+    if(trackingResult)trackingResult.innerHTML='';
+    if(trackingError){trackingError.textContent='';trackingError.hidden=true;}
+  }
   state.page = page;
   document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active', el.dataset.page===page));
   document.querySelectorAll('.nav-links button').forEach(b=>b.classList.toggle('active', b.dataset.nav===page));
