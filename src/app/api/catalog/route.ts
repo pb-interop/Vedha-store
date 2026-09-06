@@ -30,18 +30,20 @@ type CatalogRow = {
     sort_order: number;
   }[];
 };
+type OfferRow = { id: number; title: string; message: string | null; button_label: string | null; button_url: string | null; offer_products: { variant_id: number; sale_price_paise: number }[] };
 
 export async function GET() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("id,slug,name,short_description,description,ingredients,allergens,usage,storage_instructions,vegetarian,featured,categories(name,sort_order),product_variants(id,label,price_paise,stock_quantity,reserved_quantity,active),product_images(storage_path,alt_text,sort_order)")
-    .eq("active", true)
-    .order("name");
+  const [{ data, error }, { data: offers, error: offerError }] = await Promise.all([
+    supabase.from("products").select("id,slug,name,short_description,description,ingredients,allergens,usage,storage_instructions,vegetarian,featured,categories(name,sort_order),product_variants(id,label,price_paise,stock_quantity,reserved_quantity,active),product_images(storage_path,alt_text,sort_order)").eq("active", true).order("name"),
+    supabase.from("offers").select("id,title,message,button_label,button_url,offer_products(variant_id,sale_price_paise)").eq("active", true).order("created_at", { ascending: false }).limit(1),
+  ]);
 
-  if (error) {
+  if (error || offerError) {
     return NextResponse.json({ error: "The catalogue could not be loaded." }, { status: 500 });
   }
+  const activeOffer = ((offers ?? []) as OfferRow[])[0];
+  const salePrices = new Map((activeOffer?.offer_products ?? []).map((row) => [row.variant_id, row.sale_price_paise]));
 
   const products = ((data ?? []) as CatalogRow[])
     .map((product) => {
@@ -61,7 +63,9 @@ export async function GET() {
         categoryOrder: category?.sort_order ?? 999,
         name: product.name,
         wt: variant.label,
-        price: variant.price_paise / 100,
+        price: Math.min(variant.price_paise, salePrices.get(variant.id) ?? variant.price_paise) / 100,
+        regularPrice: variant.price_paise / 100,
+        onSale: (salePrices.get(variant.id) ?? variant.price_paise) < variant.price_paise,
         stock: Math.max(0, variant.stock_quantity - variant.reserved_quantity),
         featured: product.featured,
         description: product.description ?? product.short_description,
@@ -76,7 +80,8 @@ export async function GET() {
     .filter(Boolean)
     .sort((a, b) => (a!.categoryOrder - b!.categoryOrder) || a!.name.localeCompare(b!.name));
 
-  return NextResponse.json({ products }, {
+  const banner = activeOffer ? { title: activeOffer.title, message: activeOffer.message, buttonLabel: activeOffer.button_label, buttonUrl: activeOffer.button_url } : null;
+  return NextResponse.json({ products, banner }, {
     headers: { "Cache-Control": "no-store" },
   });
 }

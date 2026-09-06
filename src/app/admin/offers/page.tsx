@@ -1,0 +1,34 @@
+import { AdminHeader } from "../admin-nav";
+import { requireAdmin } from "../lib";
+import { createOffer, setOfferActive } from "./actions";
+import styles from "../admin.module.css";
+
+type Product = { id: number; name: string; sku: string | null; product_variants: { id: number; label: string; price_paise: number }[] };
+type Offer = { id: number; title: string; message: string | null; starts_at: string | null; ends_at: string | null; active: boolean; offer_products: { variant_id: number; sale_price_paise: number }[] };
+
+export default async function OffersPage() {
+  const { supabase } = await requireAdmin();
+  const [{ data: products, error }, { data: offers }] = await Promise.all([
+    supabase.from("products").select("id,name,sku,product_variants(id,label,price_paise)").eq("active", true).order("name"),
+    supabase.from("offers").select("id,title,message,starts_at,ends_at,active,offer_products(variant_id,sale_price_paise)").order("created_at", { ascending: false }),
+  ]);
+  if (error) throw new Error(error.message);
+  const productRows = (products ?? []) as Product[];
+  const offerRows = (offers ?? []) as Offer[];
+
+  return <main className={styles.page}><div className={styles.shell}>
+    <AdminHeader/>
+    <section className={styles.heading}><span>Campaigns</span><h1>Offers</h1><p>Create a temporary sale price without changing the regular product price.</p></section>
+    <details className={styles.addPanel} open={!offerRows.length}><summary>＋ Create a new offer</summary>
+      <form action={createOffer} className={styles.offerForm}>
+        <div className={styles.offerFields}><label>Offer name<input name="title" required placeholder="Diwali Sale"/></label><label className={styles.offerMessage}>Banner message<input name="message" placeholder="Festival favourites at special prices"/></label><label>Starts (optional)<input name="starts_at" type="datetime-local"/></label><label>Ends (optional)<input name="ends_at" type="datetime-local"/></label><label className={styles.check}><input name="active" type="checkbox"/> Publish now</label></div>
+        <div className={styles.saleProducts}><div className={styles.saleHeader}><strong>Products and sale prices</strong><span>Leave a sale-price field blank when the product is not included.</span></div>{productRows.map((product) => { const variant=product.product_variants[0]; if(!variant)return null; return <div className={styles.saleRow} key={variant.id}><span><b>{product.name}</b><small>{product.sku} · {variant.label}</small></span><span>Regular <b>{money(variant.price_paise)}</b></span><input type="hidden" name={`regular_${variant.id}`} value={variant.price_paise}/><label>Sale price ₹<input name={`sale_${variant.id}`} type="number" min="0" max={(variant.price_paise-1)/100} step="0.01" placeholder="Optional"/></label></div>; })}</div>
+        <button className={styles.save} type="submit">Save offer</button>
+      </form>
+    </details>
+    <div className={styles.offerList}>{offerRows.map((offer) => <article className={styles.offerEntry} key={offer.id}><div><span className={offer.active ? styles.offerLive : styles.offerOff}>{offer.active ? "Live" : "Off"}</span><h2>{offer.title}</h2><p>{offer.message || "No banner message"}</p><small>{dateRange(offer.starts_at,offer.ends_at)} · {offer.offer_products.length} discounted products</small></div><form action={setOfferActive}><input type="hidden" name="offer_id" value={offer.id}/><input type="hidden" name="active" value={String(!offer.active)}/><button className={offer.active ? styles.previewButton : styles.save}>{offer.active ? "Turn off" : "Publish"}</button></form></article>)}</div>
+  </div></main>;
+}
+
+function money(paise:number){return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(paise/100);}
+function dateRange(start:string|null,end:string|null){const format=(value:string)=>new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeZone:"Asia/Kolkata"}).format(new Date(value));return `${start?format(start):"Starts now"} – ${end?format(end):"No end date"}`;}

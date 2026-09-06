@@ -13,6 +13,7 @@ This is the database-backed application for Vedha Homemade Food Products. The or
 - Live storefront pricing, availability, descriptions and image galleries
 - Existing product details, cart, checkout, Contact Us and wishlist preserved
 - UPI and cash-on-delivery choices represented in the checkout interface
+- Temporary offers with storefront banners and product-specific sale prices
 - Production build verified
 
 ## Database and administrator foundation
@@ -25,11 +26,12 @@ The protected administrator route is available at `/admin`. Until Supabase is co
 4. Create the administrator in Supabase Authentication.
 5. Run `supabase/activate-admin.sql` to approve the configured administrator without copying a user UUID.
 6. Run `supabase/storage-setup.sql` to create the product-image bucket and its security policies.
-7. Run `supabase/orders-setup.sql` to activate transactional guest checkout and inventory reservation.
-8. Run `supabase/order-admin-setup.sql` to activate administrator order and inventory-status updates.
-9. Run `supabase/order-tracking-setup.sql` to activate private customer order tracking.
-9. Copy `.env.example` to `.env.local` and enter the project URL, publishable key and approved administrator email.
-10. Restart `npm.cmd run dev`.
+7. Run `supabase/offers-setup.sql` to activate product-specific sale pricing.
+8. Run `supabase/orders-setup.sql` to activate sale-aware guest checkout and inventory reservation.
+9. Run `supabase/order-admin-setup.sql` to activate administrator order and inventory-status updates.
+10. Run `supabase/order-tracking-setup.sql` to activate private customer order tracking.
+11. Copy `.env.example` to `.env.local` and enter the project URL, publishable key and approved administrator email.
+12. Restart `npm.cmd run dev`.
 
 Row Level Security permits public reading of active catalogue and offer records only. Customer, address, order, payment, invoice, inventory-history and audit records require an approved administrator session.
 
@@ -45,7 +47,7 @@ On Windows PowerShell, use `npm.cmd` instead of `npm` when script execution poli
 
 ## Administrator area
 
-Only approved administrators can sign in. Products and Inventory are live; the remaining sections are planned:
+Only approved administrators can sign in. Products, Inventory, Orders and Offers are live; the remaining sections are planned:
 
 1. Dashboard
 2. Products

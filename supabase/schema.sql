@@ -100,6 +100,12 @@ create table public.offers (
   discount_value integer check(discount_value>=0), starts_at timestamptz, ends_at timestamptz,
   active boolean not null default false, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+create table public.offer_products (
+  offer_id bigint not null references public.offers(id) on delete cascade,
+  variant_id bigint not null references public.product_variants(id) on delete cascade,
+  sale_price_paise integer not null check(sale_price_paise>=0),
+  primary key(offer_id,variant_id)
+);
 create table public.invoices (
   id bigint generated always as identity primary key,
   order_id bigint not null unique references public.orders(id), invoice_number text not null unique,
@@ -124,10 +130,12 @@ alter table public.product_images enable row level security; alter table public.
 alter table public.customers enable row level security; alter table public.addresses enable row level security;
 alter table public.orders enable row level security; alter table public.order_items enable row level security;
 alter table public.payments enable row level security; alter table public.offers enable row level security;
+alter table public.offer_products enable row level security;
 alter table public.invoices enable row level security; alter table public.audit_log enable row level security;
 
 revoke all on all tables in schema public from anon, authenticated;
 grant select on public.categories,public.products,public.product_variants,public.product_images,public.offers to anon,authenticated;
+grant select on public.offer_products to anon,authenticated;
 grant all on all tables in schema public to authenticated;
 grant usage,select on all sequences in schema public to authenticated;
 
@@ -136,6 +144,7 @@ create policy public_active_products on public.products for select to anon,authe
 create policy public_active_variants on public.product_variants for select to anon,authenticated using(active=true);
 create policy public_product_images on public.product_images for select to anon,authenticated using(exists(select 1 from public.products p where p.id=product_id and p.active=true));
 create policy public_active_offers on public.offers for select to anon,authenticated using(active=true and (starts_at is null or starts_at<=now()) and (ends_at is null or ends_at>=now()));
+create policy public_active_offer_products on public.offer_products for select to anon,authenticated using(exists(select 1 from public.offers o where o.id=offer_id and o.active=true and (o.starts_at is null or o.starts_at<=now()) and (o.ends_at is null or o.ends_at>=now())));
 
 create policy admins_manage_admins on public.admin_users for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy admins_manage_categories on public.categories for all to authenticated using(public.is_admin()) with check(public.is_admin());
@@ -149,6 +158,7 @@ create policy admins_manage_orders on public.orders for all to authenticated usi
 create policy admins_manage_order_items on public.order_items for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy admins_manage_payments on public.payments for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy admins_manage_offers on public.offers for all to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy admins_manage_offer_products on public.offer_products for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy admins_manage_invoices on public.invoices for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy admins_read_audit on public.audit_log for select to authenticated using(public.is_admin());
 create policy admins_add_audit on public.audit_log for insert to authenticated with check(public.is_admin());

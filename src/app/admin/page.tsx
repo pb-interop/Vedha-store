@@ -36,9 +36,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     { name: "Products", description: "Add items, prices and details", href: "/admin/products" },
     { name: "Inventory", description: "Update stock and review low-stock items", href: "/admin/inventory" },
     { name: "Orders", description: "View customers, addresses, payment and fulfilment", href: "/admin/orders" },
+    { name: "Offers", description: "Create banners and temporary sale prices", href: "/admin/offers" },
   ];
   const upcoming = [
-    ["Offers", "Create sale and festival banners"],
     ["Customers", "Search customers by name or phone"],
     ["Invoices", "Print, download and resend invoices"],
   ];

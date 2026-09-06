@@ -44,7 +44,7 @@ begin
   for item in select value from jsonb_array_elements(checkout->'items') loop
     quantity_value := (item->>'quantity')::integer;
     if quantity_value < 1 or quantity_value > 20 then raise exception 'Each quantity must be between 1 and 20.'; end if;
-    select v.id, v.label, v.sku, v.price_paise, v.stock_quantity, v.reserved_quantity, p.name
+    select v.id, v.label, v.sku, v.price_paise, public.active_sale_price(v.id) as effective_price_paise, v.stock_quantity, v.reserved_quantity, p.name
       into variant_record
       from public.products p join public.product_variants v on v.product_id=p.id
       where p.id=(item->>'product_id')::bigint and p.active=true and v.active=true
@@ -53,7 +53,7 @@ begin
     if variant_record.stock_quantity - variant_record.reserved_quantity < quantity_value then
       raise exception '% has only % available.', variant_record.name, variant_record.stock_quantity - variant_record.reserved_quantity;
     end if;
-    subtotal_value := subtotal_value + variant_record.price_paise * quantity_value;
+    subtotal_value := subtotal_value + variant_record.effective_price_paise * quantity_value;
   end loop;
 
   insert into public.customers(name,phone,email)
@@ -69,7 +69,7 @@ begin
 
   for item in select value from jsonb_array_elements(checkout->'items') loop
     quantity_value := (item->>'quantity')::integer;
-    select v.id, v.label, v.sku, v.price_paise, p.name into variant_record
+    select v.id, v.label, v.sku, public.active_sale_price(v.id) as price_paise, p.name into variant_record
       from public.products p join public.product_variants v on v.product_id=p.id
       where p.id=(item->>'product_id')::bigint and p.active=true and v.active=true order by v.id limit 1;
     insert into public.order_items(order_id,variant_id,product_name,variant_label,sku,quantity,unit_price_paise,line_total_paise)
