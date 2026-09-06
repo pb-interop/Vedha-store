@@ -600,8 +600,9 @@ footer p{color:#a89f8a;font-size:13.5px;}
 .contact-actions{display:flex;gap:10px;flex-wrap:wrap}.contact-actions .btn{flex:1;justify-content:center;min-width:170px}
 .checkout-shell{display:grid;grid-template-columns:1.3fr .7fr;gap:30px;align-items:start}.checkout-steps{display:flex;gap:8px;margin-bottom:24px}.checkout-step{font:700 11px 'Space Mono',monospace;color:var(--ink-soft);padding:8px 11px;border-bottom:2px solid var(--line)}.checkout-step.active{color:var(--forest);border-color:var(--forest)}.payment-options{display:grid;gap:10px;margin-top:20px}.payment-option{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center;cursor:pointer}.payment-option.selected{border:2px solid var(--forest);background:#f4f7f1}.upi-panel{display:none;margin-top:20px;padding:22px;background:var(--cream-2);border-radius:14px;text-align:center}.upi-panel.show{display:block}.qr-wrap{width:210px;height:210px;margin:16px auto;background:white;padding:12px;border-radius:12px;display:grid;place-items:center}.qr-wrap img,.qr-wrap canvas{max-width:100%!important;height:auto!important}.demo-warning{font-size:11px;color:var(--chili);font-weight:700}.order-success{text-align:center;padding:50px 20px}.order-success .success-mark{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:var(--forest);color:white;font-size:32px;margin:0 auto 18px}
 .checkout-shell .summary-note{display:none}
+.tracking-result{margin-top:28px}.tracking-card{padding:28px;background:var(--paper);border:1px solid var(--line);border-radius:18px}.tracking-top{display:flex;justify-content:space-between;gap:24px;align-items:start;padding-bottom:22px;border-bottom:1px solid var(--line)}.tracking-top h3{font-size:26px;margin:5px 0}.tracking-top p{margin:0;color:var(--ink-soft)}.tracking-state{padding:8px 12px;border-radius:999px;background:#e8ddbf;color:var(--forest-dark);font-size:12px;font-weight:800}.tracking-line{display:grid;grid-template-columns:repeat(6,1fr);margin:34px 0 38px}.tracking-step{position:relative;text-align:center;color:#9a9287;font-size:11px;font-weight:700}.tracking-step::before{content:'';position:absolute;top:9px;left:-50%;width:100%;height:3px;background:#d8d0c1}.tracking-step:first-child::before{display:none}.tracking-dot{position:relative;z-index:1;width:21px;height:21px;margin:0 auto 10px;border:3px solid #d8d0c1;border-radius:50%;background:var(--paper)}.tracking-step.done{color:var(--forest)}.tracking-step.done::before{background:var(--forest)}.tracking-step.done .tracking-dot{border-color:var(--forest);background:var(--forest);box-shadow:inset 0 0 0 4px var(--paper)}.tracking-step.current .tracking-dot{box-shadow:0 0 0 5px rgba(198,139,20,.2),inset 0 0 0 4px var(--paper);border-color:var(--turmeric);background:var(--turmeric)}.tracking-details{display:grid;grid-template-columns:1.35fr .65fr;gap:32px}.tracking-details h4{margin:0 0 14px;color:var(--forest-dark)}.tracking-item{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}.tracking-item span:first-child{display:grid}.tracking-item small{color:var(--ink-soft)}.tracking-summary{padding-left:24px;border-left:1px solid var(--line)}.tracking-summary p{display:flex;justify-content:space-between;gap:18px;margin:0;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.tracking-summary strong{text-align:right}.tracking-total{font-size:17px!important}.tracking-error{margin-top:16px;padding:12px 14px;border-radius:9px;background:#f7ded7;color:#7d2f20;font-size:13px;font-weight:700}.tracking-cancelled{margin:26px 0;padding:16px;border-radius:10px;background:#f7ded7;color:#7d2f20;text-align:center;font-weight:800}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@media(max-width:800px){.product-sheet,.contact-layout,.checkout-shell{grid-template-columns:1fr}.product-sheet{padding:22px;gap:18px}.detail-copy h2{font-size:28px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.product-modal{padding:10px}.checkout-steps{overflow:auto}}
+@media(max-width:800px){.product-sheet,.contact-layout,.checkout-shell,.tracking-details{grid-template-columns:1fr}.product-sheet{padding:22px;gap:18px}.detail-copy h2{font-size:28px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.product-modal{padding:10px}.checkout-steps{overflow:auto}.tracking-summary{padding:0;border:0}.tracking-line{grid-template-columns:1fr;margin-left:8px}.tracking-step{min-height:54px;padding-left:42px;text-align:left}.tracking-step::before{top:-44px;left:9px;width:3px;height:54px}.tracking-step:first-child::before{display:block;height:0}.tracking-dot{position:absolute;left:0;top:0;margin:0}.tracking-top{display:grid}}
 </style>
 </head>
 <body>
@@ -917,8 +918,9 @@ footer p{color:#a89f8a;font-size:13.5px;}
         <div class="field full"><label for="trackNumber">Order number</label><input id="trackNumber" required placeholder="Example: VH-2026-00124"></div>
         <div class="field full"><button class="btn btn-primary" type="submit">Find my order</button></div>
       </div>
-      <p class="summary-note" style="color:var(--ink-soft);">Order tracking will become active when the store database is connected.</p>
+      <p class="tracking-error" id="trackingError" hidden></p>
     </form>
+    <div class="tracking-result" id="trackingResult" aria-live="polite"></div>
   </div>
 </section>
 
@@ -1461,10 +1463,26 @@ function updateBadges(){
   wb.textContent = wc; wb.hidden = wc===0;
 }
 
-document.getElementById('trackOrderForm').addEventListener('submit',e=>{
+document.getElementById('trackOrderForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  showToast('Order tracking will activate with the database');
+  const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),error=document.getElementById('trackingError'),result=document.getElementById('trackingResult');
+  error.hidden=true;result.innerHTML='';button.disabled=true;button.textContent='Finding order...';
+  try{
+    const response=await fetch('/api/track-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:document.getElementById('trackPhone').value,order_number:document.getElementById('trackNumber').value})});
+    const order=await response.json();if(!response.ok)throw new Error(order.error||'The order could not be found.');renderTrackingResult(order,result);
+  }catch(problem){error.textContent=problem.message;error.hidden=false;}
+  finally{button.disabled=false;button.textContent='Find my order';}
 });
+
+function renderTrackingResult(order,target){
+  const stages=[['new','Order received'],['confirmed','Confirmed'],['preparing','Preparing'],['packed','Packed'],['shipped','Shipped'],['delivered','Delivered']];
+  const currentIndex=stages.findIndex(stage=>stage[0]===order.status),cancelled=order.status==='cancelled';
+  const timeline=cancelled?'<div class="tracking-cancelled">This order has been cancelled.</div>':`<div class="tracking-line">${stages.map((stage,index)=>`<div class="tracking-step ${index<=currentIndex?'done':''} ${index===currentIndex?'current':''}"><div class="tracking-dot"></div><span>${stage[1]}</span></div>`).join('')}</div>`;
+  const items=(order.items||[]).map(item=>`<div class="tracking-item"><span><strong>${safeText(item.name)}</strong><small>${safeText(item.variant)}</small></span><span>${item.quantity} &times; &#8377;${(item.unit_price_paise/100).toLocaleString('en-IN')}</span><strong>&#8377;${(item.line_total_paise/100).toLocaleString('en-IN')}</strong></div>`).join('');
+  target.innerHTML=`<article class="tracking-card"><div class="tracking-top"><div><span class="section-tag">${safeText(order.order_number)}</span><h3>${safeText(order.customer_name)}</h3><p>Ordered ${new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(order.created_at))}</p></div><span class="tracking-state">${statusLabel(order.status)}</span></div>${timeline}<div class="tracking-details"><section><h4>Items</h4>${items}</section><aside class="tracking-summary"><h4>Order information</h4><p><span>Payment</span><strong>${String(order.payment_method).toUpperCase()}</strong></p><p><span>Payment status</span><strong>${statusLabel(order.payment_status)}</strong></p><p><span>Order status</span><strong>${statusLabel(order.status)}</strong></p><p class="tracking-total"><span>Total</span><strong>&#8377;${(order.total_paise/100).toLocaleString('en-IN')}</strong></p></aside></div></article>`;
+}
+
+function statusLabel(value){return String(value||'').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());}
 
 const CONTACT_EMAIL='vedhahomemadefoodproducts@gmail.com'; // Change this if Vedha uses a different inbox.
 function contactMessage(){

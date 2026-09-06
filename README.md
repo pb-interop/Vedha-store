@@ -27,6 +27,7 @@ The protected administrator route is available at `/admin`. Until Supabase is co
 6. Run `supabase/storage-setup.sql` to create the product-image bucket and its security policies.
 7. Run `supabase/orders-setup.sql` to activate transactional guest checkout and inventory reservation.
 8. Run `supabase/order-admin-setup.sql` to activate administrator order and inventory-status updates.
+9. Run `supabase/order-tracking-setup.sql` to activate private customer order tracking.
 9. Copy `.env.example` to `.env.local` and enter the project URL, publishable key and approved administrator email.
 10. Restart `npm.cmd run dev`.
 
