@@ -5,38 +5,23 @@ import styles from "../admin.module.css";
 
 type Preview = { title: string; message: string; starts: string; ends: string; image: string | null };
 
-export function OfferDisplayControl() {
-  const control = useRef<HTMLDivElement>(null);
-  const [display, setDisplay] = useState(false);
-  const [starts, setStarts] = useState("");
+export function OfferPreviewControl() {
+  const previewButton = useRef<HTMLButtonElement>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
 
   useEffect(() => {
-    const form = control.current?.closest("form");
+    const form = previewButton.current?.closest("form");
     const startInput = form?.elements.namedItem("starts_at") as HTMLInputElement | null;
     const endInput = form?.elements.namedItem("ends_at") as HTMLInputElement | null;
     if (!startInput || !endInput) return;
     const updateRange = () => {
       endInput.min = startInput.value;
       if (endInput.value && endInput.value < startInput.value) endInput.value = startInput.value;
-      setStarts(formatDate(startInput.value, ""));
     };
     updateRange();
     startInput.addEventListener("change", updateRange);
     return () => startInput.removeEventListener("change", updateRange);
   }, []);
-
-  return <div ref={control} className={styles.displayControl}>
-    <input type="checkbox" name="active" checked={display} onChange={() => undefined} hidden/>
-    <button className={`${styles.displayButton} ${display ? styles.displayButtonOn : ""}`} type="button" onClick={() => setDisplay((value) => !value)} aria-pressed={display}>
-      {display ? "✓ Display on Website" : "Display on Website"}
-    </button>
-    {starts && <small>Starts {starts}</small>}
-  </div>;
-}
-
-export function OfferFormControls() {
-  const previewButton = useRef<HTMLButtonElement>(null);
-  const [preview, setPreview] = useState<Preview | null>(null);
 
   useEffect(() => {
     if (!preview) return;
@@ -73,7 +58,6 @@ export function OfferFormControls() {
   return <>
     <div className={styles.offerFormActions}>
       <button ref={previewButton} className={styles.previewButton} type="button" onClick={openPreview}>Preview</button>
-      <button className={styles.save} type="submit">Save offer</button>
     </div>
     {preview && <div className={styles.offerPreviewBackdrop} onMouseDown={(event) => event.target === event.currentTarget && closePreview()}>
       <section className={`${styles.offerPreview} ${preview.image ? styles.offerPreviewWithImage : ""}`} role="dialog" aria-modal="true" aria-label="Offer banner preview" style={preview.image ? { backgroundImage: `url("${preview.image}")` } : undefined}>
@@ -87,6 +71,13 @@ export function OfferFormControls() {
       </section>
     </div>}
   </>;
+}
+
+export function OfferPublishButton() {
+  return <div className={styles.offerFormActions}>
+    <input type="hidden" name="active" value="on"/>
+    <button className={styles.save} type="submit">Display on Website</button>
+  </div>;
 }
 
 function formatDate(value: string, fallback: string) {

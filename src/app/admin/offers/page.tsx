@@ -3,7 +3,7 @@ import { requireAdmin } from "../lib";
 import { createOffer, setOfferActive, updateOffer } from "./actions";
 import { OfferSavedNotice } from "./offer-saved-notice";
 import { DeleteOfferButton } from "./delete-offer-button";
-import { OfferDisplayControl, OfferFormControls } from "./offer-form-controls";
+import { OfferPreviewControl, OfferPublishButton } from "./offer-form-controls";
 import styles from "../admin.module.css";
 
 type Category = { name: string; sort_order: number };
@@ -27,7 +27,7 @@ export default async function OffersPage({ searchParams }: PageProps<"/admin/off
     <section className={styles.heading}><span>Campaigns</span><h1>Offers</h1><p>Create a temporary offer price without changing the regular product price.</p></section>
     <details className={styles.addPanel} open={!offerRows.length}><summary>＋ Create a new offer</summary>
       <form action={createOffer} className={styles.offerForm}>
-        <div className={styles.offerFields}><label>Offer name<input name="title" required placeholder="Diwali Sale"/></label><label className={styles.offerMessage}>Banner message<input name="message" placeholder="Festival favourites at special prices"/></label><label>Starts (optional)<input name="starts_at" type="datetime-local"/></label><label>Ends (optional)<input name="ends_at" type="datetime-local"/></label><label>Banner picture (optional)<input name="banner_image" type="file" accept="image/jpeg,image/png,image/webp"/></label><OfferDisplayControl/></div>
+        <div className={styles.offerFields}><label>Offer name<input name="title" required placeholder="Diwali Sale"/></label><label className={styles.offerMessage}>Banner message<input name="message" placeholder="Festival favourites at special prices"/></label><label>Starts (optional)<input name="starts_at" type="datetime-local"/></label><label>Ends (optional)<input name="ends_at" type="datetime-local"/></label><label>Banner picture (optional)<input name="banner_image" type="file" accept="image/jpeg,image/png,image/webp"/></label><OfferPreviewControl/></div>
         <div className={styles.saleProducts}>
           <div className={styles.saleHeader}><strong>Products on Offer</strong><span>Enter an offer price only for products included in this offer.</span></div>
           {productGroups.map((group) => <details className={styles.saleCategory} key={group.name} open>
@@ -35,7 +35,7 @@ export default async function OffersPage({ searchParams }: PageProps<"/admin/off
             {group.products.map((product) => { const variant=product.product_variants[0]; if(!variant)return null; return <div className={styles.saleRow} key={variant.id}><span><b>{product.name}</b><small>{product.sku} · {variant.label}</small></span><span>Regular <b>{money(variant.price_paise)}</b></span><input type="hidden" name={`regular_${variant.id}`} value={variant.price_paise}/><label>Offer price ₹<input name={`sale_${variant.id}`} type="number" min="0" max={(variant.price_paise-1)/100} step="0.01" placeholder="Optional"/></label></div>; })}
           </details>)}
         </div>
-        <OfferFormControls/>
+        <OfferPublishButton/>
       </form>
     </details>
     <div className={styles.offerList}>{offerRows.map((offer) => <article className={styles.offerEntry} key={offer.id}>
