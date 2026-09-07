@@ -82,6 +82,7 @@ export async function deleteOffer(data: FormData) {
   if (offer.image_path) await supabase.storage.from("product-images").remove([offer.image_path]);
   await supabase.from("audit_log").insert({ admin_user_id: user.id, action: "offer_deleted", entity_type: "offer", entity_id: String(offerId), details: { title: offer.title } });
   refreshOffers();
+  redirect("/admin/offers");
 }
 
 function indiaDate(value: string) { return value ? new Date(`${value}:00+05:30`) : null; }
