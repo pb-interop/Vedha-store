@@ -65,7 +65,7 @@ export default async function ProductsPage() {
           }) : <p>No photographs uploaded. The storefront uses generated package artwork.</p>}</div>
           <div className={styles.imageUpload}>
             <label>Upload Photo<input name="image" type="file" accept="image/jpeg,image/png,image/webp"/></label>
-            <div className={styles.productButtons}><ProductPreview category={category?.name ?? "Other"} weight={variant?.label ?? ""} stock={variant?.stock_quantity ?? 0} currentImages={imageUrls}/><button className={styles.save} type="submit">Save changes</button></div>
+            <div className={styles.productButtons}><ProductPreview category={category?.name ?? "Other"} weight={variant?.label ?? ""} stock={variant?.stock_quantity ?? 0} currentImages={imageUrls}/><button className={styles.save} type="submit">Save</button></div>
           </div>
         </div>
       </form>;

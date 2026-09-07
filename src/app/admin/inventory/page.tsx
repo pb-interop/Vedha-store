@@ -32,7 +32,7 @@ export default async function InventoryPage() {
         <div className={styles.stockNumbers}><span>Reserved <b>{variant.reserved_quantity}</b></span><span>Available <b>{available}</b></span></div>
         <label>Physical stock<input name="stock_quantity" type="number" min={variant.reserved_quantity} defaultValue={variant.stock_quantity} required/></label>
         <label>Reason<select name="reason" defaultValue="Stock count"><option>Stock count</option><option>New batch produced</option><option>Damaged item</option><option>Correction</option></select></label>
-        <button className={styles.save}>Update stock</button>
+        <button className={styles.save}>Update</button>
       </form>;
     })}</div></section>)}</div>
   </div></main>;
