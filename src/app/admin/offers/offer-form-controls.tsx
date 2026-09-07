@@ -5,9 +5,37 @@ import styles from "../admin.module.css";
 
 type Preview = { title: string; message: string; starts: string; ends: string; image: string | null };
 
+export function OfferDisplayControl() {
+  const control = useRef<HTMLDivElement>(null);
+  const [display, setDisplay] = useState(false);
+  const [starts, setStarts] = useState("");
+
+  useEffect(() => {
+    const form = control.current?.closest("form");
+    const startInput = form?.elements.namedItem("starts_at") as HTMLInputElement | null;
+    const endInput = form?.elements.namedItem("ends_at") as HTMLInputElement | null;
+    if (!startInput || !endInput) return;
+    const updateRange = () => {
+      endInput.min = startInput.value;
+      if (endInput.value && endInput.value < startInput.value) endInput.value = startInput.value;
+      setStarts(formatDate(startInput.value, ""));
+    };
+    updateRange();
+    startInput.addEventListener("change", updateRange);
+    return () => startInput.removeEventListener("change", updateRange);
+  }, []);
+
+  return <div ref={control} className={styles.displayControl}>
+    <input type="checkbox" name="active" checked={display} onChange={() => undefined} hidden/>
+    <button className={`${styles.displayButton} ${display ? styles.displayButtonOn : ""}`} type="button" onClick={() => setDisplay((value) => !value)} aria-pressed={display}>
+      {display ? "✓ Display on Website" : "Display on Website"}
+    </button>
+    {starts && <small>Starts {starts}</small>}
+  </div>;
+}
+
 export function OfferFormControls() {
   const previewButton = useRef<HTMLButtonElement>(null);
-  const [display, setDisplay] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
 
   useEffect(() => {
@@ -43,11 +71,7 @@ export function OfferFormControls() {
 
   const campaign = preview?.title.replace(/\s+(?:special\s+)?(?:sale|offer)s?$/i, "").trim() || preview?.title;
   return <>
-    <input type="checkbox" name="active" checked={display} onChange={() => undefined} hidden/>
     <div className={styles.offerFormActions}>
-      <button className={`${styles.displayButton} ${display ? styles.displayButtonOn : ""}`} type="button" onClick={() => setDisplay((value) => !value)} aria-pressed={display}>
-        {display ? "✓ Display on Website" : "Display on Website"}
-      </button>
       <button ref={previewButton} className={styles.previewButton} type="button" onClick={openPreview}>Preview</button>
       <button className={styles.save} type="submit">Save offer</button>
     </div>

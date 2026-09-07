@@ -3,7 +3,7 @@ import { requireAdmin } from "../lib";
 import { createOffer, setOfferActive, updateOffer } from "./actions";
 import { OfferSavedNotice } from "./offer-saved-notice";
 import { DeleteOfferButton } from "./delete-offer-button";
-import { OfferFormControls } from "./offer-form-controls";
+import { OfferDisplayControl, OfferFormControls } from "./offer-form-controls";
 import styles from "../admin.module.css";
 
 type Category = { name: string; sort_order: number };
@@ -27,7 +27,7 @@ export default async function OffersPage({ searchParams }: PageProps<"/admin/off
     <section className={styles.heading}><span>Campaigns</span><h1>Offers</h1><p>Create a temporary offer price without changing the regular product price.</p></section>
     <details className={styles.addPanel} open={!offerRows.length}><summary>＋ Create a new offer</summary>
       <form action={createOffer} className={styles.offerForm}>
-        <div className={styles.offerFields}><label>Offer name<input name="title" required placeholder="Diwali Sale"/></label><label className={styles.offerMessage}>Banner message<input name="message" placeholder="Festival favourites at special prices"/></label><label>Starts (optional)<input name="starts_at" type="datetime-local"/></label><label>Ends (optional)<input name="ends_at" type="datetime-local"/></label><label>Banner picture (optional)<input name="banner_image" type="file" accept="image/jpeg,image/png,image/webp"/></label></div>
+        <div className={styles.offerFields}><label>Offer name<input name="title" required placeholder="Diwali Sale"/></label><label className={styles.offerMessage}>Banner message<input name="message" placeholder="Festival favourites at special prices"/></label><label>Starts (optional)<input name="starts_at" type="datetime-local"/></label><label>Ends (optional)<input name="ends_at" type="datetime-local"/></label><label>Banner picture (optional)<input name="banner_image" type="file" accept="image/jpeg,image/png,image/webp"/></label><OfferDisplayControl/></div>
         <div className={styles.saleProducts}>
           <div className={styles.saleHeader}><strong>Products on Offer</strong><span>Enter an offer price only for products included in this offer.</span></div>
           {productGroups.map((group) => <details className={styles.saleCategory} key={group.name} open>
