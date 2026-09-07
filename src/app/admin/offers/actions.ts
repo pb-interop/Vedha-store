@@ -52,6 +52,38 @@ export async function setOfferActive(data: FormData) {
   refreshOffers();
 }
 
+export async function updateOffer(data: FormData) {
+  const { supabase, user } = await requireAdmin();
+  const offerId = Number(data.get("offer_id"));
+  const title = text(data, "title");
+  const message = text(data, "message");
+  const startsAt = indiaDate(text(data, "starts_at"));
+  const endsAt = indiaDate(text(data, "ends_at"));
+  if (!Number.isInteger(offerId) || offerId < 1) throw new Error("Invalid offer.");
+  if (!title) throw new Error("Enter an offer name.");
+  if (startsAt && endsAt && startsAt >= endsAt) throw new Error("The end date must be after the start date.");
+  const { error } = await supabase.from("offers").update({ title, message: message || null, starts_at: startsAt?.toISOString() ?? null, ends_at: endsAt?.toISOString() ?? null, updated_at: new Date().toISOString() }).eq("id", offerId);
+  if (error) throw new Error(error.message);
+  const image = data.get("banner_image");
+  if (image instanceof File && image.size > 0) await uploadBanner(supabase, offerId, image);
+  await supabase.from("audit_log").insert({ admin_user_id: user.id, action: "offer_updated", entity_type: "offer", entity_id: String(offerId), details: { title } });
+  refreshOffers();
+  redirect("/admin/offers?saved=1");
+}
+
+export async function deleteOffer(data: FormData) {
+  const { supabase, user } = await requireAdmin();
+  const offerId = Number(data.get("offer_id"));
+  if (!Number.isInteger(offerId) || offerId < 1) throw new Error("Invalid offer.");
+  const { data: offer, error: readError } = await supabase.from("offers").select("title,image_path").eq("id", offerId).single();
+  if (readError) throw new Error(readError.message);
+  const { error } = await supabase.from("offers").delete().eq("id", offerId);
+  if (error) throw new Error(error.message);
+  if (offer.image_path) await supabase.storage.from("product-images").remove([offer.image_path]);
+  await supabase.from("audit_log").insert({ admin_user_id: user.id, action: "offer_deleted", entity_type: "offer", entity_id: String(offerId), details: { title: offer.title } });
+  refreshOffers();
+}
+
 function indiaDate(value: string) { return value ? new Date(`${value}:00+05:30`) : null; }
 function refreshOffers() { revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/admin/offers"); }
 
@@ -60,9 +92,11 @@ async function uploadBanner(supabase: Awaited<ReturnType<typeof requireAdmin>>["
   const extensions: Record<string,string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
   const extension = extensions[file.type];
   if (!extension) throw new Error("Upload a JPG, PNG, or WebP banner image.");
+  const { data: existing } = await supabase.from("offers").select("image_path").eq("id", offerId).single();
   const path = `offers/${offerId}/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
   if (uploadError) throw new Error(`${uploadError.message}. Run supabase/storage-setup.sql if storage is not configured.`);
   const { error } = await supabase.from("offers").update({ image_path: path }).eq("id", offerId);
   if (error) { await supabase.storage.from("product-images").remove([path]); throw new Error(error.message); }
+  if (existing?.image_path && existing.image_path !== path) await supabase.storage.from("product-images").remove([existing.image_path]);
 }
