@@ -46,7 +46,7 @@ export default async function OffersPage({ searchParams }: PageProps<"/admin/off
 }
 
 function money(paise:number){return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(paise/100);}
-function dateRange(start:string|null,end:string|null){const format=(value:string)=>new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeZone:"Asia/Kolkata"}).format(new Date(value));return `${start?format(start):"Starts now"} – ${end?format(end):"No end date"}`;}
+function dateRange(start:string|null,end:string|null){const format=(value:string)=>new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"2-digit",year:"numeric",timeZone:"Asia/Kolkata"}).format(new Date(value));return `${start?format(start):"Starts now"} – ${end?format(end):"No end date"}`;}
 function localDateTime(value:string|null){if(!value)return "";const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(value));const get=(type:Intl.DateTimeFormatPartTypes)=>parts.find((part)=>part.type===type)?.value;return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;}
 function groupProducts(products:Product[]){
   const groups = new Map<string,{name:string;sortOrder:number;products:Product[]}>();
